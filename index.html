@@ -3,36 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Documento Protegido — Demo</title>
+<title>Documento Protegido — Estático</title>
 <style>
   html,body{height:100%;margin:0;background:#0f1724;color:#e6eef8;font-family:Inter, Arial, sans-serif}
   #wrap{box-sizing:border-box;display:flex;flex-direction:column;height:100%;}
   header{padding:12px;display:flex;align-items:center;gap:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-bottom:1px solid rgba(255,255,255,0.03)}
   header h1{font-size:1rem;margin:0}
   #canvasContainer{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;position:relative}
-  canvas{max-width:100%;height:auto;border-radius:8px;box-shadow:0 6px 24px rgba(2,6,23,0.6)}
+  canvas{max-width:100%;height:auto;border-radius:8px;box-shadow:0 6px 24px rgba(2,6,23,0.6);background:#061226}
   *{user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none}
   img,canvas{pointer-events:auto}
   #expiredOverlay{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:linear-gradient(180deg, rgba(5,8,12,0.75), rgba(3,6,10,0.85));
-    color:#ffd6d6;
-    font-weight:700;
-    font-size:20px;
-    text-align:center;
-    padding:20px;
-    gap:12px;
-    z-index:40;
-    border-radius:8px;
-    display:none;
+    color:#ffd6d6;font-weight:700;font-size:20px;text-align:center;padding:20px;gap:12px;z-index:40;border-radius:8px;display:none;
   }
   #controls{display:flex;gap:8px;padding:12px;align-items:center}
   button{background:#0b1220;color:#cfe6ff;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:6px;cursor:pointer}
-  button:hover{opacity:0.95}
+  button[disabled]{opacity:0.45;cursor:not-allowed}
   footer{font-size:12px;padding:8px 12px;color:#8ea5bf;background:linear-gradient(180deg, transparent, rgba(255,255,255,0.01))}
 </style>
 </head>
@@ -40,7 +28,7 @@
 <div id="wrap">
   <header>
     <h1>Documento Protegido — Visualização</h1>
-    <div style="margin-left:auto;font-size:13px;color:#9fbadb">Proteção: Canvas + Distortion + Watermark</div>
+    <div style="margin-left:auto;font-size:13px;color:#9fbadb">Proteção: Canvas + Watermark</div>
   </header>
 
   <div id="canvasContainer">
@@ -49,8 +37,8 @@
   </div>
 
   <div id="controls">
-    <button id="regenBtn">Reembaralhar</button>
-    <button id="toggleAnim">Pausar animação</button>
+    <button id="regenBtn" disabled>Reembaralhar (desativado)</button>
+    <button id="toggleAnim" disabled>Animação (desativado)</button>
     <button id="downloadBtn">Baixar PNG</button>
   </div>
 
@@ -59,27 +47,19 @@
 
 <script>
 /* ================= CONFIGURAÇÃO ================= */
-
-/* Texto — substitua por suas linhas (SEM dados pessoais se público) */
+/* Texto — substitua aqui (não inclua dados pessoais se for público) */
 const TEXT_CONTENT = [
-  "Só para você saber, não vou mais te cobrar o que você me deve por não ter feito o programa naquela noite, na 147. Você disse na frente de todo mundo que ia te pagar. Bom, cada um tem sua própria cabeça e jeito de falar. Eu me lembro de tudo daquela noite, mas você não. Você deve estar usando drogas, ou melhor, bebendo e tudo mais. Mas eu não sinto pena de você, a mulher que causou tudo isso. Você está atraindo esse ódio, essa coisa ruim. Pare de beber, isso já é alguma coisa, pelo menos você vai se lembrar para quem deve o dinheiro. Eu realmente queria sair com você naquele dia, mas você provou que não é bonita por dentro, nem muito bonita por fora, e com tudo o que disseram sobre você na casa 147, drogas, bebida em excesso, problemas, não só lá, mas em outras casas também, seu hábito de achar que tudo o que acontece é culpa daquele cara. Esquece ele, você fala dele o tempo todo, mesmo eu provando que não sou ele, você acha que ele sou eu. Bem, eu não sou esse cara. Os funcionários disseram que você não parava de falar mal dele, até duas garotas de programa disseram e elas disseram que ele nunca mais voltou lá. Acerte as contas com esse cara, ou esqueça isso de vez. Culpa? Se você tem a consciência tranquila por não me pagar, tudo bem. Quando você acha que é tarde demais, a verdade é que ainda é cedo.",
-  "Evite dados pessoais se for publicar na internet."
+    "Só para você saber, não vou mais te cobrar o que você me deve por não ter feito o programa naquela noite, na 147. Você disse na frente de todo mundo que ia te pagar. Bom, cada um tem sua própria cabeça e jeito de falar. Eu me lembro de tudo daquela noite, mas você não. Você deve estar usando drogas, ou melhor, bebendo e tudo mais. Mas eu não sinto pena de você, a mulher que causou tudo isso. Você está atraindo esse ódio, essa coisa ruim. Pare de beber, isso já é alguma coisa, pelo menos você vai se lembrar para quem deve o dinheiro. Eu realmente queria sair com você naquele dia, mas você provou que não é bonita por dentro, nem muito bonita por fora, e com tudo o que disseram sobre você na casa 147, drogas, bebida em excesso, problemas, não só lá, mas em outras casas também, seu hábito de achar que tudo o que acontece é culpa daquele cara. Esquece ele, você fala dele o tempo todo, mesmo eu provando que não sou ele, você acha que ele sou eu. Bem, eu não sou esse cara. Os funcionários disseram que você não parava de falar mal dele, até duas garotas de programa disseram e elas disseram que ele nunca mais voltou lá. Acerte as contas com esse cara, ou esqueça isso de vez. Culpa? Se você tem a consciência tranquila por não me pagar, tudo bem. Quando você acha que é tarde demais, a verdade é que ainda é cedo.",
+  "Só não esquece voce me deve dinheiro ainda."
 ];
-
 /* DATA DE EXPIRAÇÃO (formato YYYY-MM-DD) — expira às 23:59:59 dessa data, horário local */
 const EXPIRY_DATE = "2025-12-31";
-
 /* ================================================== */
 
-/* constantes visuais/funcionais */
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
 const LINE_HEIGHT = 34;
 const FONT_SIZE = 22;
-const CHAR_JITTER = 6;
-const ROTATION_MAX = 8 * Math.PI/180;
-const ANIM_INTERVAL_MS = 1200;
-const NOISE_DOTS = 420;
 const WATERMARK_TEXT = 'NÃO COPIAR — CONFIDENCIAL';
 
 const canvas = document.getElementById('docCanvas');
@@ -87,55 +67,40 @@ const ctx = canvas.getContext('2d', {alpha:false});
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-let charMap = [];
-let isAnimating = true;
-let animTimer = null;
-
-/* util — parse YYYY-MM-DD into local Date at 23:59:59 */
+/* parse YYYY-MM-DD -> Date local às 23:59:59 */
 function parseExpiryDateLocal(dateStr) {
   const parts = dateStr.split('-');
   if (parts.length !== 3) return null;
   const y = parseInt(parts[0],10);
   const m = parseInt(parts[1],10) - 1;
   const d = parseInt(parts[2],10);
-  // set to 23:59:59 local time
   return new Date(y, m, d, 23, 59, 59, 0);
 }
-
-/* checa expiração */
 function isExpired() {
   const expiry = parseExpiryDateLocal(EXPIRY_DATE);
-  if (!expiry) return false; // inválido -> não expira
-  const now = new Date();
-  return now > expiry;
+  if (!expiry) return false;
+  return new Date() > expiry;
 }
 
-/* bloqueia interações quando expirado */
 function showExpiredScreen(msg) {
-  stopAnim();
-  // bloqueia botões e download
   document.getElementById('regenBtn').disabled = true;
   document.getElementById('toggleAnim').disabled = true;
   document.getElementById('downloadBtn').disabled = true;
-
   const overlay = document.getElementById('expiredOverlay');
   overlay.textContent = msg;
   overlay.style.display = 'flex';
   overlay.setAttribute('aria-hidden', 'false');
-
-  // remove canvas content for mais segurança visual
+  // limpa canvas visualmente
   ctx.fillStyle = '#061226';
   ctx.fillRect(0,0,canvas.width,canvas.height);
 }
-
-/* remove expired overlay if dentro do prazo (usado no load) */
 function hideExpiredScreen() {
   const overlay = document.getElementById('expiredOverlay');
   overlay.style.display = 'none';
   overlay.setAttribute('aria-hidden', 'true');
 }
 
-/* split text into lines */
+/* split text into lines that fit */
 function splitTextToLines(textArray, maxWidth) {
   ctx.font = `${FONT_SIZE}px Arial`;
   let lines = [];
@@ -145,52 +110,23 @@ function splitTextToLines(textArray, maxWidth) {
     for (let w of words) {
       const test = cur ? cur + ' ' + w : w;
       if (ctx.measureText(test).width <= (maxWidth - 96)) cur = test;
-      else { lines.push(cur); cur = w; }
+      else { if (cur) lines.push(cur); cur = w; }
     }
     if (cur) lines.push(cur);
   });
   return lines;
 }
 
-function seedCharMap(lines) {
-  charMap = [];
-  lines.forEach((line,y)=>{
-    for (let i=0;i<line.length;i++){
-      charMap.push({
-        ch: line[i],
-        lineIndex: y,
-        charIndex: i,
-        xJ: (Math.random()*2-1)*CHAR_JITTER,
-        yJ: (Math.random()*2-1)*CHAR_JITTER,
-        rot: (Math.random()*2-1)*ROTATION_MAX
-      });
-    }
-  });
-}
-
+/* desenho estático — sem jitter, sem rotação */
 function drawBackground() {
   ctx.fillStyle = '#061226';
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  // subtle vignette
+  // leve vinheta
   let g = ctx.createLinearGradient(0,0,0,canvas.height);
   g.addColorStop(0,'rgba(255,255,255,0.02)');
   g.addColorStop(1,'rgba(0,0,0,0.12)');
   ctx.fillStyle = g;
   ctx.fillRect(0,0,canvas.width,canvas.height);
-}
-
-function drawNoise() {
-  ctx.globalAlpha = 0.12;
-  for (let i=0;i<NOISE_DOTS;i++){
-    const x = Math.random()*canvas.width;
-    const y = Math.random()*canvas.height;
-    const r = Math.random()*1.6;
-    ctx.beginPath();
-    ctx.fillStyle = (Math.random()>0.5)? '#0b2033':'#112b44';
-    ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1.0;
 }
 
 function drawWatermark() {
@@ -206,143 +142,45 @@ function drawWatermark() {
   ctx.globalAlpha = 1.0;
 }
 
-function render() {
+function renderStatic() {
   drawBackground();
-  drawNoise();
   ctx.fillStyle = '#dff1ff';
   ctx.font = `${FONT_SIZE}px Arial`;
   ctx.textBaseline = 'top';
 
   const lines = splitTextToLines(TEXT_CONTENT, canvas.width);
-  seedCharMap(lines);
-
   const totalHeight = lines.length * LINE_HEIGHT;
-  let startY = (canvas.height - totalHeight) / 2;
-  let curCharIndex = 0;
+  const startY = (canvas.height - totalHeight) / 2;
+
   for (let y=0;y<lines.length;y++){
     const line = lines[y];
     const lineWidth = ctx.measureText(line).width;
-    let startX = (canvas.width - lineWidth)/2;
-    for (let i=0;i<line.length;i++){
-      const c = line[i];
-      const map = charMap[curCharIndex++] || {xJ:0,yJ:0,rot:0};
-      ctx.save();
-      const x = startX + ctx.measureText(line.slice(0,i)).width + map.xJ;
-      const yPos = startY + y*LINE_HEIGHT + map.yJ;
-      ctx.translate(x + (FONT_SIZE/2), yPos + (FONT_SIZE/2));
-      ctx.rotate(map.rot);
-      ctx.fillStyle = '#e6f7ff';
-      ctx.fillText(c, -FONT_SIZE/2, -FONT_SIZE/2);
-      ctx.restore();
-    }
+    const startX = (canvas.width - lineWidth)/2;
+    ctx.fillText(line, startX, startY + y*LINE_HEIGHT);
   }
 
-  // overlay diagonal lines
-  for (let i=0;i<6;i++){
+  // um traço diagonal sutil — opcional (removível)
+  ctx.globalAlpha = 0.06;
+  for (let i=0;i<3;i++){
     ctx.beginPath();
-    ctx.globalAlpha = 0.06;
     ctx.lineWidth = 1;
-    const off = (i*130) % canvas.width;
-    ctx.moveTo(off-200, -40);
-    ctx.lineTo(off + 280, canvas.height + 40);
+    const off = (i*220) % canvas.width;
+    ctx.moveTo(off-300, -40);
+    ctx.lineTo(off + 380, canvas.height + 40);
     ctx.strokeStyle = '#07253a';
     ctx.stroke();
-    ctx.globalAlpha = 1.0;
   }
+  ctx.globalAlpha = 1.0;
 
   drawWatermark();
 }
 
-/* pequenas mutações no charMap para animar */
-function reRandomize() {
-  for (let m of charMap){
-    m.xJ = (Math.random()*2-1)*CHAR_JITTER;
-    m.yJ = (Math.random()*2-1)*CHAR_JITTER;
-    m.rot = (Math.random()*2-1)*ROTATION_MAX;
-  }
-  renderFromCharMap();
-}
 
-function renderFromCharMap() {
-  drawBackground();
-  drawNoise();
-  ctx.fillStyle = '#dff1ff';
-  ctx.font = `${FONT_SIZE}px Arial`;
-  ctx.textBaseline = 'top';
 
-  const lines = splitTextToLines(TEXT_CONTENT, canvas.width);
-  let startY = (canvas.height - lines.length * LINE_HEIGHT) / 2;
-  let curCharIndex = 0;
-  for (let y=0;y<lines.length;y++){
-    const line = lines[y];
-    const lineWidth = ctx.measureText(line).width;
-    let startX = (canvas.width - lineWidth)/2;
-    for (let i=0;i<line.length;i++){
-      const c = line[i];
-      const map = charMap[curCharIndex++] || {xJ:0,yJ:0,rot:0};
-      ctx.save();
-      const x = startX + ctx.measureText(line.slice(0,i)).width + map.xJ;
-      const yPos = startY + y*LINE_HEIGHT + map.yJ;
-      ctx.translate(x + (FONT_SIZE/2), yPos + (FONT_SIZE/2));
-      ctx.rotate(map.rot);
-      ctx.fillStyle = '#e6f7ff';
-      ctx.fillText(c, -FONT_SIZE/2, -FONT_SIZE/2);
-      ctx.restore();
-    }
-  }
-
-  for (let i=0;i<6;i++){
-    ctx.beginPath();
-    ctx.globalAlpha = 0.06;
-    ctx.lineWidth = 1;
-    const off = (i*130) % canvas.width;
-    ctx.moveTo(off-200, -40);
-    ctx.lineTo(off + 280, canvas.height + 40);
-    ctx.strokeStyle = '#07253a';
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-  }
-
-  drawWatermark();
-}
-
-/* controles */
-document.getElementById('regenBtn').addEventListener('click', ()=>{
-  reRandomize();
-});
-document.getElementById('toggleAnim').addEventListener('click', (e)=>{
-  isAnimating = !isAnimating;
-  e.target.textContent = isAnimating ? 'Pausar animação' : 'Retomar animação';
-  if (isAnimating) startAnim(); else stopAnim();
-});
-document.getElementById('downloadBtn').addEventListener('click', ()=>{
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'documento_protegido.png';
-  a.click();
-});
-
-/* animação */
-function startAnim(){
-  if (animTimer) clearInterval(animTimer);
-  animTimer = setInterval(()=> {
-    for (let m of charMap){
-      m.xJ += (Math.random()*2-1)*1.6;
-      m.yJ += (Math.random()*2-1)*1.6;
-      m.rot += (Math.random()*2-1)*(ROTATION_MAX*0.15);
-      m.xJ = Math.max(Math.min(m.xJ, CHAR_JITTER), -CHAR_JITTER);
-      m.yJ = Math.max(Math.min(m.yJ, CHAR_JITTER), -CHAR_JITTER);
-      m.rot = Math.max(Math.min(m.rot, ROTATION_MAX), -ROTATION_MAX);
-    }
-    renderFromCharMap();
-  }, ANIM_INTERVAL_MS);
-}
-function stopAnim(){ if (animTimer) clearInterval(animTimer); animTimer = null; }
-
-/* bloqueios — clique esquerdo e atalhos */
-function blockLeft(e){ if (e.button === 0) { e.preventDefault(); e.stopPropagation(); return false; } }
-window.addEventListener("mousedown", blockLeft, true);
+/* bloqueios mínimos (não infalíveis) */
+window.addEventListener("mousedown", function(e) {
+  if (e.button === 0) { e.preventDefault(); e.stopPropagation(); return false; }
+}, true);
 
 document.addEventListener("keydown", (e)=>{
   if (
@@ -356,46 +194,23 @@ document.addEventListener("keydown", (e)=>{
   }
 });
 
-/* detectar DevTools e recarregar (tentativa) */
-const DEVTOOLS_THRESHOLD = 160;
-const DEVTOOLS_CHECK_INTERVAL = 800;
-let devtoolsChecker = setInterval(function(){
-  try {
-    if (window.outerWidth - window.innerWidth > DEVTOOLS_THRESHOLD ||
-        window.outerHeight - window.innerHeight > DEVTOOLS_THRESHOLD) {
-      location.reload();
-    }
-  } catch(e){}
-}, DEVTOOLS_CHECK_INTERVAL);
-
-/* prevenção de algumas ações de seleção/impressão */
 window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('dragstart', e => e.preventDefault());
 window.addEventListener('copy', e => e.preventDefault());
 window.addEventListener('cut', e => e.preventDefault());
-window.addEventListener('keydown', (e)=>{
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 's' || e.key === 'c' || e.key === 'a')) {
-    e.preventDefault();
-  }
-});
 
-/* print hooks */
-window.addEventListener('beforeprint', function() { document.body.style.visibility = 'hidden'; });
-window.addEventListener('afterprint', function(){ document.body.style.visibility = ''; });
-
-/* inicialização: checa expiração antes de renderizar */
+/* checagem de expiração e init */
 function init() {
   if (isExpired()) {
     showExpiredScreen("Conteúdo expirado em " + EXPIRY_DATE + ". A página não está mais disponível.");
     return;
   } else {
     hideExpiredScreen();
-    render();
-    startAnim();
+    renderStatic();
   }
 }
 
-/* se quiser atualizar dinamicamente: checar a cada minuto e bloquear quando expirar */
+/* checar expiração a cada minuto (se quiser atualizar dinamicamente) */
 setInterval(function(){
   if (isExpired()) {
     showExpiredScreen("Conteúdo expirado em " + EXPIRY_DATE + ". A página não está mais disponível.");
@@ -406,5 +221,3 @@ init();
 </script>
 </body>
 </html>
-
-
