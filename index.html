@@ -1,4 +1,3 @@
-@ -0,0 +1,337 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -10,22 +9,30 @@
   #wrap{box-sizing:border-box;display:flex;flex-direction:column;height:100%;}
   header{padding:12px;display:flex;align-items:center;gap:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-bottom:1px solid rgba(255,255,255,0.03)}
   header h1{font-size:1rem;margin:0}
-  #canvasContainer{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+  #canvasContainer{flex:1;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;position:relative}
   canvas{max-width:100%;height:auto;border-radius:8px;box-shadow:0 6px 24px rgba(2,6,23,0.6)}
-  /* Prevent selection and dragging */
   *{user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none}
   img,canvas{pointer-events:auto}
-  /* Disable printing */
-  @media print{
-    body * { visibility: hidden !important; }
-    #printWarning { visibility: visible !important; position: fixed; top: 0; left: 0; }
+  #expiredOverlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(180deg, rgba(5,8,12,0.75), rgba(3,6,10,0.85));
+    color:#ffd6d6;
+    font-weight:700;
+    font-size:20px;
+    text-align:center;
+    padding:20px;
+    gap:12px;
+    z-index:40;
+    border-radius:8px;
+    display:none;
   }
-  #printWarning{display:none; padding:12px; background:#ffefcc; color:#1a1a1a; font-weight:600}
-  /* small controls for admin only */
   #controls{display:flex;gap:8px;padding:12px;align-items:center}
   button{background:#0b1220;color:#cfe6ff;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:6px;cursor:pointer}
   button:hover{opacity:0.95}
-  input[type=file]{display:none}
   footer{font-size:12px;padding:8px 12px;color:#8ea5bf;background:linear-gradient(180deg, transparent, rgba(255,255,255,0.01))}
 </style>
 </head>
@@ -38,80 +45,116 @@
 
   <div id="canvasContainer">
     <canvas id="docCanvas" width="1200" height="800" role="img" aria-label="Documento protegido"></canvas>
+    <div id="expiredOverlay" aria-hidden="true"></div>
   </div>
 
-  <div id="controls" style="display:flex;">
-    <button id="regenBtn">Reembaralhar agora</button>
+  <div id="controls">
+    <button id="regenBtn">Reembaralhar</button>
     <button id="toggleAnim">Pausar animação</button>
     <button id="downloadBtn">Baixar PNG</button>
-    <div style="margin-left:auto;color:#a8c7e6;font-size:13px">Dica: para mais proteção, combine com senha/expiração fora do GitHub</div>
   </div>
 
-  <div id="printWarning">Impressão desabilitada — conteúdo protegido.</div>
-  <footer>⚠️ Atenção: proteção técnica não impede foto com câmera. Este método dificulta OCR automático.</footer>
+  <footer>⚠️ Proteção técnica não impede foto com celular.</footer>
 </div>
 
 <script>
-/*
-  Como usar:
-  - Substitua o texto em TEXT_CONTENT pela sua mensagem.
-  - Salve o arquivo como index.html e publique no GitHub Pages.
-  - O script desenha cada caractere com offsets/rotations aleatórios e ruído.
-*/
+/* ================= CONFIGURAÇÃO ================= */
 
-/* --------- CONFIGURÁVEL --------- */
-Linha 2 do documento. Substitua este texto pelo seu conteúdo real.
-IMPORTANTE: Evite dar informações pessoais no próprio HTML se este repo for público.`;
+/* Texto — substitua por suas linhas (SEM dados pessoais se público) */
 const TEXT_CONTENT = [
-  "entao men, tudo de boa ? achei voce aqui, te vi junto com uma gleice kelly algumas vezes quando eu estava namorando com ela, serio mem, ela destriu a minha vida como vai destruir a sua, vc e ou era casado ,ela me consumiu tudo o que eu tinha, dinheiro, saude, tempo, tudo. gastei mais de 80 mil com ela. tenho fotos dela, transando comigo, fotos saindo, frequentava a casa dela direto. eu dormia com ela na cama dela, transava com ela sem camisinha sempre, des de a primeira vez que foi na dv,  no sofa da sala, na area dela, na cama,  ficava na casa dela com o filho, ela tirava onde de vc pagar as coisas para ela, de dar iphone, relogio, pulseras que ela nunca vai usar e vendeu ja sei la, as sextas de coisas que vc mandava quem comia as paradas era eu, ela sempre me falou que de voce ela so quer o dinheiro. ah vc pode estar pensando e mentra desse cara, eu sei que sua familia tem ap em bc, que seu  pai e um dos ortopedistas top daqui de floripa, que vc da aula online e ela assitou uma dessa ai ela fico braba pq vc estava de alianca sendo que tinha falado para ela que nao estava mais,  sei que vc foi ver ela no hospital quando ela quebrou o pe, fiquei cuidando dela quando ela estava com o pe quebrado, ela foi na festa de aniversario, festas dos meu parentes, .",
+  "TEXTO EXEMPLO: Substitua esta linha pelo conteúdo que quiser.",
+  "Evite dados pessoais se for publicar na internet."
 ];
 
-/* parâmetros de desenho */
+/* DATA DE EXPIRAÇÃO (formato YYYY-MM-DD) — expira às 23:59:59 dessa data, horário local */
+const EXPIRY_DATE = "2025-12-31";
+
+/* ================================================== */
+
+/* constantes visuais/funcionais */
 const CANVAS_WIDTH = 1200;
 const CANVAS_HEIGHT = 800;
-const PADDING = 48;
 const LINE_HEIGHT = 34;
-const FONT_FAMILY = 'DejaVu Sans, Arial, sans-serif';
-const FONT_SIZE = 22; // px
-const CHAR_JITTER = 6; // deslocamento máximo por caractere (px)
-const ROTATION_MAX = 8 * Math.PI/180; // radianos
-const ANIM_INTERVAL_MS = 1200; // tempo entre reembaralhos
-const NOISE_DOTS = 420; // quantidade de pontos de ruído
-const WATERMARK_TEXT = 'NÃO COPIAR — CONFIDENCIAL'; 
-
-/* --------- FIM CONFIG --------- */
+const FONT_SIZE = 22;
+const CHAR_JITTER = 6;
+const ROTATION_MAX = 8 * Math.PI/180;
+const ANIM_INTERVAL_MS = 1200;
+const NOISE_DOTS = 420;
+const WATERMARK_TEXT = 'NÃO COPIAR — CONFIDENCIAL';
 
 const canvas = document.getElementById('docCanvas');
 const ctx = canvas.getContext('2d', {alpha:false});
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
-let charMap = []; // armazenará offset/rot para cada caractere
+let charMap = [];
 let isAnimating = true;
 let animTimer = null;
 
-function splitTextToLines(text, maxWidth) {
-  ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
-  const words = text.split(/\s+/);
-  const lines = [];
-  let cur = '';
-  for (let w of words) {
-    const trial = cur ? cur + ' ' + w : w;
-    if (ctx.measureText(trial).width <= (maxWidth - 2*PADDING)) {
-      cur = trial;
-    } else {
-      lines.push(cur);
-      cur = w;
+/* util — parse YYYY-MM-DD into local Date at 23:59:59 */
+function parseExpiryDateLocal(dateStr) {
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0],10);
+  const m = parseInt(parts[1],10) - 1;
+  const d = parseInt(parts[2],10);
+  // set to 23:59:59 local time
+  return new Date(y, m, d, 23, 59, 59, 0);
+}
+
+/* checa expiração */
+function isExpired() {
+  const expiry = parseExpiryDateLocal(EXPIRY_DATE);
+  if (!expiry) return false; // inválido -> não expira
+  const now = new Date();
+  return now > expiry;
+}
+
+/* bloqueia interações quando expirado */
+function showExpiredScreen(msg) {
+  stopAnim();
+  // bloqueia botões e download
+  document.getElementById('regenBtn').disabled = true;
+  document.getElementById('toggleAnim').disabled = true;
+  document.getElementById('downloadBtn').disabled = true;
+
+  const overlay = document.getElementById('expiredOverlay');
+  overlay.textContent = msg;
+  overlay.style.display = 'flex';
+  overlay.setAttribute('aria-hidden', 'false');
+
+  // remove canvas content for mais segurança visual
+  ctx.fillStyle = '#061226';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+/* remove expired overlay if dentro do prazo (usado no load) */
+function hideExpiredScreen() {
+  const overlay = document.getElementById('expiredOverlay');
+  overlay.style.display = 'none';
+  overlay.setAttribute('aria-hidden', 'true');
+}
+
+/* split text into lines */
+function splitTextToLines(textArray, maxWidth) {
+  ctx.font = `${FONT_SIZE}px Arial`;
+  let lines = [];
+  textArray.forEach(text => {
+    const words = text.split(/\s+/);
+    let cur = '';
+    for (let w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(test).width <= (maxWidth - 96)) cur = test;
+      else { lines.push(cur); cur = w; }
     }
-  }
-  if (cur) lines.push(cur);
+    if (cur) lines.push(cur);
+  });
   return lines;
 }
 
 function seedCharMap(lines) {
   charMap = [];
-  for (let y=0;y<lines.length;y++){
-    const line = lines[y];
+  lines.forEach((line,y)=>{
     for (let i=0;i<line.length;i++){
       charMap.push({
         ch: line[i],
@@ -122,16 +165,12 @@ function seedCharMap(lines) {
         rot: (Math.random()*2-1)*ROTATION_MAX
       });
     }
-    // add newline marker if you want (not necessary)
-    charMap.push({ch: '\n', lineIndex: y, charIndex: line.length});
-  }
+  });
 }
 
 function drawBackground() {
-  // solid background
   ctx.fillStyle = '#061226';
   ctx.fillRect(0,0,canvas.width,canvas.height);
-
   // subtle vignette
   let g = ctx.createLinearGradient(0,0,0,canvas.height);
   g.addColorStop(0,'rgba(255,255,255,0.02)');
@@ -159,7 +198,7 @@ function drawWatermark() {
   ctx.translate(canvas.width/2, canvas.height/2);
   ctx.rotate(-35 * Math.PI/180);
   ctx.globalAlpha = 0.12;
-  ctx.font = '66px ' + FONT_FAMILY;
+  ctx.font = '66px Arial';
   ctx.fillStyle = '#ff6b6b';
   ctx.textAlign = 'center';
   ctx.fillText(WATERMARK_TEXT, 0, 0);
@@ -171,24 +210,19 @@ function render() {
   drawBackground();
   drawNoise();
   ctx.fillStyle = '#dff1ff';
-  ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+  ctx.font = `${FONT_SIZE}px Arial`;
   ctx.textBaseline = 'top';
 
   const lines = splitTextToLines(TEXT_CONTENT, canvas.width);
-  // create a new charMap if different length
-  // we prefer to re-seed on each render call to change offsets frequently
   seedCharMap(lines);
 
-  // compute starting coordinates
   const totalHeight = lines.length * LINE_HEIGHT;
   let startY = (canvas.height - totalHeight) / 2;
   let curCharIndex = 0;
   for (let y=0;y<lines.length;y++){
     const line = lines[y];
-    // measure whole line to center
     const lineWidth = ctx.measureText(line).width;
     let startX = (canvas.width - lineWidth)/2;
-    // draw char by char with per-char jitter/rotation
     for (let i=0;i<line.length;i++){
       const c = line[i];
       const map = charMap[curCharIndex++] || {xJ:0,yJ:0,rot:0};
@@ -201,11 +235,9 @@ function render() {
       ctx.fillText(c, -FONT_SIZE/2, -FONT_SIZE/2);
       ctx.restore();
     }
-    // after each line add a newline marker slot
-    curCharIndex++; // skip \n slot
   }
 
-  // overlay a few fine diagonal lines to confuse OCR
+  // overlay diagonal lines
   for (let i=0;i<6;i++){
     ctx.beginPath();
     ctx.globalAlpha = 0.06;
@@ -221,8 +253,8 @@ function render() {
   drawWatermark();
 }
 
+/* pequenas mutações no charMap para animar */
 function reRandomize() {
-  // mutate charMap slightly instead of full regen to make OCR harder over time
   for (let m of charMap){
     m.xJ = (Math.random()*2-1)*CHAR_JITTER;
     m.yJ = (Math.random()*2-1)*CHAR_JITTER;
@@ -232,11 +264,10 @@ function reRandomize() {
 }
 
 function renderFromCharMap() {
-  // re-render based on existing charMap without re-wrapping input
   drawBackground();
   drawNoise();
   ctx.fillStyle = '#dff1ff';
-  ctx.font = `${FONT_SIZE}px ${FONT_FAMILY}`;
+  ctx.font = `${FONT_SIZE}px Arial`;
   ctx.textBaseline = 'top';
 
   const lines = splitTextToLines(TEXT_CONTENT, canvas.width);
@@ -258,7 +289,6 @@ function renderFromCharMap() {
       ctx.fillText(c, -FONT_SIZE/2, -FONT_SIZE/2);
       ctx.restore();
     }
-    curCharIndex++;
   }
 
   for (let i=0;i<6;i++){
@@ -276,7 +306,7 @@ function renderFromCharMap() {
   drawWatermark();
 }
 
-/* Controls */
+/* controles */
 document.getElementById('regenBtn').addEventListener('click', ()=>{
   reRandomize();
 });
@@ -285,7 +315,6 @@ document.getElementById('toggleAnim').addEventListener('click', (e)=>{
   e.target.textContent = isAnimating ? 'Pausar animação' : 'Retomar animação';
   if (isAnimating) startAnim(); else stopAnim();
 });
-
 document.getElementById('downloadBtn').addEventListener('click', ()=>{
   const url = canvas.toDataURL('image/png');
   const a = document.createElement('a');
@@ -294,17 +323,14 @@ document.getElementById('downloadBtn').addEventListener('click', ()=>{
   a.click();
 });
 
-/* animation loop */
+/* animação */
 function startAnim(){
   if (animTimer) clearInterval(animTimer);
   animTimer = setInterval(()=> {
-    // small re-randomize
     for (let m of charMap){
-      // small movement
       m.xJ += (Math.random()*2-1)*1.6;
       m.yJ += (Math.random()*2-1)*1.6;
       m.rot += (Math.random()*2-1)*(ROTATION_MAX*0.15);
-      // clamp
       m.xJ = Math.max(Math.min(m.xJ, CHAR_JITTER), -CHAR_JITTER);
       m.yJ = Math.max(Math.min(m.yJ, CHAR_JITTER), -CHAR_JITTER);
       m.rot = Math.max(Math.min(m.rot, ROTATION_MAX), -ROTATION_MAX);
@@ -314,7 +340,35 @@ function startAnim(){
 }
 function stopAnim(){ if (animTimer) clearInterval(animTimer); animTimer = null; }
 
-/* prevent context menu, selection, shortcuts */
+/* bloqueios — clique esquerdo e atalhos */
+function blockLeft(e){ if (e.button === 0) { e.preventDefault(); e.stopPropagation(); return false; } }
+window.addEventListener("mousedown", blockLeft, true);
+
+document.addEventListener("keydown", (e)=>{
+  if (
+    e.key === "F12" ||
+    (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) ||
+    (e.ctrlKey && e.key.toUpperCase() === "U")
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+});
+
+/* detectar DevTools e recarregar (tentativa) */
+const DEVTOOLS_THRESHOLD = 160;
+const DEVTOOLS_CHECK_INTERVAL = 800;
+let devtoolsChecker = setInterval(function(){
+  try {
+    if (window.outerWidth - window.innerWidth > DEVTOOLS_THRESHOLD ||
+        window.outerHeight - window.innerHeight > DEVTOOLS_THRESHOLD) {
+      location.reload();
+    }
+  } catch(e){}
+}, DEVTOOLS_CHECK_INTERVAL);
+
+/* prevenção de algumas ações de seleção/impressão */
 window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('dragstart', e => e.preventDefault());
 window.addEventListener('copy', e => e.preventDefault());
@@ -325,14 +379,30 @@ window.addEventListener('keydown', (e)=>{
   }
 });
 
-/* print hooks: try to hide content on print from browser (not from a camera) */
+/* print hooks */
 window.addEventListener('beforeprint', function() { document.body.style.visibility = 'hidden'; });
 window.addEventListener('afterprint', function(){ document.body.style.visibility = ''; });
 
-/* initial render */
-render();
-startAnim();
+/* inicialização: checa expiração antes de renderizar */
+function init() {
+  if (isExpired()) {
+    showExpiredScreen("Conteúdo expirado em " + EXPIRY_DATE + ". A página não está mais disponível.");
+    return;
+  } else {
+    hideExpiredScreen();
+    render();
+    startAnim();
+  }
+}
 
+/* se quiser atualizar dinamicamente: checar a cada minuto e bloquear quando expirar */
+setInterval(function(){
+  if (isExpired()) {
+    showExpiredScreen("Conteúdo expirado em " + EXPIRY_DATE + ". A página não está mais disponível.");
+  }
+}, 60 * 1000);
+
+init();
 </script>
 </body>
 </html>
